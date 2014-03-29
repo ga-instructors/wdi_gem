@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = Wdi::VERSION
   spec.authors       = ["Philip Hughes"]
   spec.email         = ["pj@ga.co"]
-  spec.summary       = %q{A utility tool for dealing with and configuring WDI command line tools.}
+  spec.summary       = %q{A utility for dealing with and configuring the WDI folder and command line tools.}
   spec.homepage      = "https://github.com/ga-instructors/wdi-gem"
   spec.license       = "BSD 3-Clause"
 
