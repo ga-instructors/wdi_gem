@@ -1,8 +1,13 @@
 {
+  "name": "`whoami`",
   "base": "`echo $HOME`/dev/wdi",
   "repos": {
     "classes": {
       "current": "`echo $HOME`/dev/wdi/class_name"
     }
+  },
+  "go": {
+    "repo": ":repos.classes.current",
+    "pattern": "/\\1/\\2/:name"
   }
 }
