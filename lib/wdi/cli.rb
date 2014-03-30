@@ -50,6 +50,13 @@ module WDI
     end
 
     class Wdi < Thor
+      #class_option :version, alias: "-v", type: :boolean
+
+      desc "version", "get current WDI tool version"
+      def version
+        say WDI::VERSION
+      end
+
       desc "init", "initialize a new WDI directory at ~/.wdi"
       method_option :load, 
                     aliases: ["-l"],
