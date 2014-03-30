@@ -119,9 +119,11 @@ module WDI
         if line.is_a?(String)
           # so this is not REALLY safe, but should be safe enough... maybe even too restrictive
           allowed_bash_regex = /(`(echo|pwd|ls)[^\|;&]*`)/
-          
-          result = eval( line[allowed_bash_regex] )
-          line.gsub!( allowed_bash_regex, result.chomp ) unless result.nil?
+          matched = line[allowed_bash_regex]
+          unless matched.nil?
+            result = eval( matched )
+            line.gsub!( allowed_bash_regex, result.chomp ) #unless result.nil?
+          end
         end
       end
 
