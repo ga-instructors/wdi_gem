@@ -5,24 +5,22 @@ Use this gem to set up the WDI configuration file(s) and make changes to them. T
 ## Usage
 
 ```bash
-wdi init (--from URI)
+wdi init (--load URI)
 #=> if there is no .wdi folder, it creates one
 #=>   by default it uses the example in data/default-config.json, or if
-#=>   --from is defined (as a URI), then it attempts to use that
+#=>   --load is defined (as a URI), then it attempts to use that
 #=> if there is a .wdi folder, this fails and suggests using `wdi config`
 ```
 
 ```bash
-wdi config --set key(.key...) value
-wdi config --get key(.key...)
+wdi config set <key(.key...)> <value>
+wdi config get <key(.key...)>
 
-wdi config --add key(.key...) value
-wdi config --remove key(.key...) (--force)
+wdi config add <key(.key...)> <value>
+wdi config remove <key(.key...)> (--force)
 
-wdi config --all (key)
+wdi config keys (<key>)
 
-# wdi get-home
-# wdi get-wdi
 # wdi get-base
-# wdi get-repo class current
+# wdi get-repo class.current
 ```

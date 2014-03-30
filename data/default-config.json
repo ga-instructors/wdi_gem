@@ -1,10 +1,8 @@
 {
   "base": "`echo $HOME`/dev/wdi",
-  "repos": [
-    {
-      "class": {
-        "current": "`echo $HOME`/dev/wdi/class-name"
-      }
+  "repos": {
+    "classes": {
+      "current": "`echo $HOME`/dev/wdi/class_name"
     }
-  ]
+  }
 }

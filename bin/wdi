@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
 
 require "wdi/cli"
-WDI::CLI.start(ARGV)
+WDI::CLI::Wdi.start(ARGV)
