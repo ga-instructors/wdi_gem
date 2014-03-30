@@ -8,25 +8,27 @@ Use this gem to set up the WDI configuration file(s) and make changes to them. T
 gem install wdi
 ```
 
-It's as easy as that! **Warning:** the current common .bash_profile in use in NYC has aliased `wdi` to a `cd ~/dev/wdi` command
+It's as easy as that!
+
+**Warning:** the current `.bash_profile` in common use by WDI NYC has aliased `wdi` from the command `cd ~/dev/wdi`. This will override the `wdi` executable loaded in the path by the gem. The alias needs to be removed from the profile and the shell reloaded for the tool to run.
 
 ## Usage
 
 #### Creating a WDI folder and config file
 
 ```bash
-wdi init (--load URI)
-#=> if there is no .wdi folder, it creates one
-#=>   by default it uses the example in data/default-config.json, or if
-#=>   --load is defined (as a URI), then it attempts to use that
-#=> if there is a .wdi folder, this fails and suggests using `wdi config`
+wdi init
 ```
 
-### Editing the WDI folder
+As long as there is no `~/.wdi` folder, this command creates one. By default it uses the template file at `data/default-config.json`. If there is already a folder, you can forcefully overwrite it by using the "-f" switch. You can also specify a "load" file or URL template to copy the `config.json` file from.
+
+#### Editing the WDI folder
 
 ```bash
-wdi add <file>
+# wdi add <file>
 ```
+
+...
 
 #### Editing a WDI config file
 
@@ -34,8 +36,8 @@ wdi add <file>
 wdi config set <key(.key...)> <value>
 wdi config get <key(.key...)>
 
-wdi config add <key(.key...)> <value>
-wdi config remove <key(.key...)> (--force)
+# wdi config add <key(.key...)> <value>
+# wdi config remove <key(.key...)> (--force)
 
 wdi config keys (<key>)
 
@@ -43,8 +45,12 @@ wdi config keys (<key>)
 # wdi get-repo class.current
 ```
 
+...
+
 #### Navigating WDI repos
 
 ```bash
-wdi go [go=repos.classes.current] <week_num> <day_num>
+# wdi go [go=repos.classes.current] <week_num> <day_num>
 ```
+
+...
