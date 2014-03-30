@@ -122,7 +122,7 @@ module WDI
           matched = line[allowed_bash_regex]
           unless matched.nil?
             result = eval( matched )
-            line.gsub!( allowed_bash_regex, result.chomp ) #unless result.nil?
+            line.gsub!( allowed_bash_regex, result.chomp )
           end
         end
       end
