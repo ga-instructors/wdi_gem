@@ -3,4 +3,4 @@ Feature: Version
 
   Scenario:
     When I run `wdi version`
-    Then the output should contain "0.0.2"
+    Then the output should contain "0.0.3"

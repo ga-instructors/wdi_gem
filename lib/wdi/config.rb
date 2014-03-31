@@ -232,10 +232,6 @@ module WDI
       end
     end
 
-    def self.create(config_uri)
-      config_uri.nil? ? self.load_local_configuration : self.load_configuration_from(config_uri)
-    end
-
     def self.save
       File.open(File.expand_path("config.json", WDI::Folder::path), "w+") do |f|
         f.write self.config.to_json
@@ -244,6 +240,10 @@ module WDI
 
     ###############################################################
     ## WRAPPER MODULE METHODS
+
+    def self.create(config_uri)
+      config_uri.nil? ? self.load_local_configuration : self.load_configuration_from(config_uri)
+    end
 
     def self.get(property)
       self.config.value_at property
@@ -258,6 +258,6 @@ module WDI
       self.config.keys_with_prefix prefix
     end
 
-    
+
   end
 end
