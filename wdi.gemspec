@@ -8,7 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = WDI::VERSION
   spec.authors       = ["Philip Hughes"]
   spec.email         = ["pj@ga.co"]
-  spec.summary       = %q{A utility for dealing with and configuring the WDI folder and command line tools.}
+  spec.summary       = %q{A utility for working with (and configuring) the WDI directory and WDI command line tools.}
+  spec.description   = %q{TBC}
   spec.homepage      = "https://github.com/ga-instructors/wdi-gem"
   spec.license       = "BSD 3-Clause"
 
@@ -19,9 +20,9 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.5"
   spec.add_development_dependency "rake",    "~> 10.2"
-  spec.add_development_dependency "rspec",   "~> 2.14.1"
-  spec.add_development_dependency "aruba",   "~> 0.5.4"
-  spec.add_development_dependency "pry",     "~> 0.9.12"
+  spec.add_development_dependency "rspec",   '~> 2.14', '>= 2.14.1'
+  spec.add_development_dependency "aruba",   '~> 0.5',  '>= 0.5.4'
+  spec.add_development_dependency "pry",     '~> 0.9',  '>= 0.9.12'
 
   spec.add_runtime_dependency "thor", "~> 0.19"
 end
