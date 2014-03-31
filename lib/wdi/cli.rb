@@ -10,7 +10,7 @@ module WDI
       def set(key, value)
         begin
           WDI::Config::set(key, value)
-          say "The key '#{key}' in the WDI config file has been set to '#{value}'.", :green
+          say "The property '#{key}' in the WDI config file has been set to '#{value}'.", :green
         rescue WDI::ConfigError => e
           say e.message, :red
         end
@@ -19,7 +19,7 @@ module WDI
       desc "get", "get a value from the WDI config file"
       def get(key)
         begin
-          say WDI::Config::get(WDI::Config::translate(key), key)
+          say WDI::Config::get(key)
         rescue WDI::ConfigError => e
           say e.message, :red
         end
@@ -39,10 +39,10 @@ module WDI
 
       # end
 
-      desc "keys", "list the keys in the WDI config file"
+      desc "keys", "list the properties in the WDI config file"
       def keys(key=nil)
         begin
-          say WDI::Config::keys(WDI::Config::translate(key), key).join("\n")
+          say WDI::Config::properties(key).join("\n")
         rescue WDI::ConfigError => e
           say e.message, :red
         end

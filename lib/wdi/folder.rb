@@ -24,7 +24,7 @@ module WDI
 
     def self.create_with_config(remove_current_directory, file)
       self.create(remove_current_directory)
-      WDI::Config::load_file(file)
+      WDI::Config::create(file)
     end
 
     def self.remove!

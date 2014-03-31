@@ -8,6 +8,6 @@
   },
   "go": {
     "repo": ":repos.classes.current",
-    "pattern": "/\\1/\\2/:name"
+    "pattern": "/$1/$2/:name"
   }
 }
