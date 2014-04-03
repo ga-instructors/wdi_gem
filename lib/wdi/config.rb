@@ -9,6 +9,9 @@ module WDI
     KEY_REGEX          = /^[a-z.]*$/ # only lowercase words separated by periods
     VALUE_AS_KEY_REGEX = /:[a-z._]+/ # a value containing at least one word prefixed by ':'
     ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
+    # COMMAND REGEX
+    # property regex
+    # value as property (reference) regex
 
     ##############################################################
     class ConfigFile
@@ -61,15 +64,19 @@ module WDI
         @pairs[key] = value
       end
 
-      def add_key_value(key, value)
+      def add_key_value(key, value="")
         key = translate_incoming(key)
         disallow_bad_references_in value
 
         if has_key?(key)
+          if @pairs[key] == value || (@pairs[key].is_a?(Array) && @pairs[key].include?(value))
+            raise WDI::ConfigError, 
+              "The property '#{key}' already contains the value '#{value}'. Can not add duplicates."
+          end
           if @pairs[key].is_a? Array
-            @pairs[key] << value
+            @pairs[key] << value unless value == ""
           else
-            @pairs[key] = [@pairs[key],value]
+            @pairs[key] = [@pairs[key],value] unless value == ""
           end
         else
           @pairs[key] = value
@@ -156,15 +163,31 @@ module WDI
       end
 
       def disallow_bad_references_in(value)
-        check_value = value.gsub(VALUE_AS_KEY_REGEX) do |reference|
-          translate_outgoing(reference) # only translate to dots if matches reference
-        end
+        if value.is_a? Array
+          value.each do |v|
+            check_value = v.gsub(VALUE_AS_KEY_REGEX) do |reference|
+              translate_outgoing(reference) # only translate to dots if matches reference
+            end
 
-        check_value.scan(VALUE_AS_KEY_REGEX) do |reference|
-          unless has_key?(reference[1..-1])
-            raise WDI::ConfigError,
-              "This value is not formatted correctly for the WDI config file " + \
-              "(malformed reference)."
+            check_value.scan(VALUE_AS_KEY_REGEX) do |reference|
+              unless has_key?(reference[1..-1])
+                raise WDI::ConfigError,
+                  "This value is not formatted correctly for the WDI config file " + \
+                  "(malformed reference)."
+              end
+            end
+          end
+        else
+          check_value = value.gsub(VALUE_AS_KEY_REGEX) do |reference|
+            translate_outgoing(reference) # only translate to dots if matches reference
+          end
+
+          check_value.scan(VALUE_AS_KEY_REGEX) do |reference|
+            unless has_key?(reference[1..-1])
+              raise WDI::ConfigError,
+                "This value is not formatted correctly for the WDI config file " + \
+                "(malformed reference)."
+            end
           end
         end
       end
@@ -258,6 +281,14 @@ module WDI
       self.config.keys_with_prefix prefix
     end
 
+    def self.has_property?(property)
+      self.config.has_key? property
+    end
 
+    def self.add(property, values)
+      values = (values == [] ? [""] : values)
+      values.each {|value| self.config.add_key_value(property, value)}
+      self.save
+    end
   end
 end

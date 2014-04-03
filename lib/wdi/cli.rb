@@ -25,10 +25,30 @@ module WDI
         end
       end
 
-      # desc "add", "an alias for set that appends values to a key's list (if the values are in an array)"
-      # def add(key, *values)
-
-      # end
+      desc "add", "adds new properties or adds values to an existing property as a list"
+      method_option :force,
+                    aliases: ["-f"],
+                    default: false,
+                    desc:    "Skip confirmation prompt when property already exists"
+      def add(key, *values)
+        begin
+          if WDI::Config::has_property?(key)
+            if values != []
+              if yes?("This property already exists. Add value(s) to it? (y/n)", :yellow)
+                WDI::Config::add(key, values)
+                say "The property '#{key}' has been added to the WDI config file.", :green
+              end
+            else
+              say "The property '#{key}' already exists in the WDI config file!", :green
+            end
+          else
+            WDI::Config::add(key, values)
+            say "The property '#{key}' has been added to the WDI config file.", :green
+          end
+        rescue WDI::ConfigError => e
+          say e.message, :red
+        end
+      end
 
       # desc "remove", "deletes a key from the config file"
       # method_option :force,

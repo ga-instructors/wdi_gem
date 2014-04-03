@@ -216,11 +216,32 @@ describe WDI::Config do
         expect(config.value_at("repos.instructors.current")).to eql("/Users/philip/dev/wdi/class_name")
       end
 
+      context "when a property is given but not a value" do
+        it "does not effect a property that already exists" do
+          config.add_key_value("name")
+          expect(config.value_at("name")).to eql("philip")
+        end
+
+        it "creates the property and sets it to an empty string if it does not exist" do
+          config.add_key_value("new_property")
+          expect(config.value_at("new_property")).to eql("")
+        end
+      end
+
       context "when the given key already exists and is not an array" do
         it "turns the property into an array and pushes the new value on to it" do
           config.add_key_value("name", "pj")
           expect(config.value_at("name")).to match_array(["philip","pj"])
         end
+
+        it "does not turn the property into an array if the value is not given", :unnecessary => true do
+          config.add_key_value("name")
+          expect(config.value_at("name")).to eql("philip")
+        end
+
+        it "throws an error if the value exists in the array already" do
+          expect {config.add_key_value("name", "philip")}.to raise_error
+        end 
       end
 
       context "when the given key already exists and is an array" do
@@ -229,6 +250,17 @@ describe WDI::Config do
           config.add_key_value("name", "felipe")
           expect(config.value_at("name")).to match_array(["philip","pj","felipe"])
         end
+
+        it "does not a value on to it if the value is not given" do
+          config.add_key_value("name", "felipe")
+          config.add_key_value("name")
+          expect(config.value_at("name")).to match_array(["philip","felipe"])
+        end
+
+        it "throws an error if the value exists in the array already" do
+          config.add_key_value("name", "felipe")
+          expect {config.add_key_value("name", "felipe")}.to raise_error
+        end 
       end
 
       context "with string values that have colon-prefixed words" do
