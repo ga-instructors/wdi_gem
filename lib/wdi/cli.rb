@@ -34,7 +34,8 @@ module WDI
         begin
           if WDI::Config::has_property?(key)
             if values != []
-              if yes?("This property already exists. Add value(s) to it? (y/n)", :yellow)
+              do_it = options[:force] ? true : yes?("This property already exists. Add value(s) to it? (y/n)", :yellow)
+              if do_it
                 WDI::Config::add(key, values)
                 say "The property '#{key}' has been added to the WDI config file.", :green
               end
@@ -50,14 +51,26 @@ module WDI
         end
       end
 
-      # desc "remove", "deletes a key from the config file"
-      # method_option :force,
-      #               aliases: ["-f"],
-      #               default: false,
-      #               desc:    "Force key's removal, if it exists, without prompting the user for confirmation."
-      # def remove(key)
-
-      # end
+      desc "remove", "deletes a key from the config file"
+      method_option :force,
+                    aliases: ["-f"],
+                    default: false,
+                    desc:    "Force key's removal, if it exists, without prompting the user for confirmation."
+      def remove(key)
+        begin
+          if WDI::Config::has_property?(key)
+            do_it = options[:force] ? true : yes?("This will remove the property '#{key}.' Continue? (y/n)", :yellow)
+            if do_it
+              WDI::Config::remove(key)
+              say "The property '#{key}' has been removed from the WDI config file.", :green
+            end
+          else
+            say "The property '#{key}' is not in the WDI config file.", :red
+          end
+        rescue WDI::ConfigError => e
+          say e.message, :red
+        end
+      end
 
       desc "keys", "list the properties in the WDI config file"
       def keys(key=nil)

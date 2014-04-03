@@ -168,6 +168,16 @@ describe WDI::Config do
       it "returns false if the key doesn't exist" do
         expect(config.has_key?("nom")).to be_false
       end
+
+      it "returns false if the key isn't a property" do
+        expect(config.has_key?("repos")).to be_false
+      end
+
+      it "returns true if the key exists and is an array" do
+        config.add_key_value("file","file1")
+        config.add_key_value("file","file2")
+        expect(config.has_key?("file")).to be_true
+      end
     end
 
     describe "#keys_with_value" do
@@ -244,6 +254,14 @@ describe WDI::Config do
         end 
       end
 
+      context "when the given key already exists and its value is an empty string" do
+        it "sets the property" do
+          config.add_key_value("file")
+          config.add_key_value("file", "file1.txt")
+          expect(config.value_at("file")).to eql("file1.txt")
+        end
+      end
+
       context "when the given key already exists and is an array" do
         it "pushes the new value on to it" do
           config.add_key_value("name", "pj")
@@ -271,6 +289,17 @@ describe WDI::Config do
         it "allows them when they reference properties" do
           expect {config.add_key_value("name", "hello i am :name")}.not_to raise_error
         end
+      end
+    end
+
+    describe "#remove_property" do
+      it "removes the stated property from the config" do
+        config.remove_property("name")
+        expect(config.value_at("name")).to be_false
+      end
+
+      it "raises an error if the property doesn't exist" do
+        expect {config.remove_property("not.a.property")}.to raise_error
       end
     end
 

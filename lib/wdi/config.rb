@@ -75,6 +75,8 @@ module WDI
           end
           if @pairs[key].is_a? Array
             @pairs[key] << value unless value == ""
+          elsif @pairs[key] == ""
+            @pairs[key] = value
           else
             @pairs[key] = [@pairs[key],value] unless value == ""
           end
@@ -82,6 +84,15 @@ module WDI
           @pairs[key] = value
         end
         return @pairs[key]
+      end
+
+      def remove_property(property)
+        property = translate_incoming(property)
+        unless has_key?(property)
+          raise WDI::ConfigError,
+            "This key is not in the WDI config file. Try `wdi config keys #{property}`."
+        end
+        @pairs.delete property
       end
 
       def keys
@@ -277,6 +288,17 @@ module WDI
       self.save
     end
 
+    def self.add(property, values)
+      values = (values == [] ? [""] : values)
+      values.each {|value| self.config.add_key_value(property, value)}
+      self.save
+    end
+
+    def self.remove(property)
+      self.config.remove_property property
+      self.save
+    end
+
     def self.properties(prefix=nil)
       self.config.keys_with_prefix prefix
     end
@@ -285,10 +307,5 @@ module WDI
       self.config.has_key? property
     end
 
-    def self.add(property, values)
-      values = (values == [] ? [""] : values)
-      values.each {|value| self.config.add_key_value(property, value)}
-      self.save
-    end
   end
 end
