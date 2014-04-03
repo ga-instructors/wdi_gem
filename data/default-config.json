@@ -9,5 +9,10 @@
   "go": {
     "repo": ":repos.classes.current",
     "pattern": "/$1/$2/:name"
+  },
+  "wdi": {
+    "files": [],
+    "commands": ["go"],
+    "repos": [ ]
   }
 }
