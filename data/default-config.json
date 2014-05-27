@@ -8,7 +8,7 @@
   },
   "go": {
     "repo": ":repos.classes.current",
-    "pattern": "/$1/$2/:name"
+    "format": "/w%02d/d0%d/:name"
   },
   "wdi": {
     "files": [],
