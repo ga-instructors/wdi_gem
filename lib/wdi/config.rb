@@ -22,93 +22,95 @@ module WDI
         ensure_format_of_pairs
       end
 
-      def has_key?(key)
-        key = ensure_is_symbol key
-
-        @pairs.key?(key)
+      def properties
+        @pairs.keys.map{|property| property.to_s}
       end
 
-      def value_at(key)
-        key = ensure_is_symbol key
+      def has_property?(property)
+        property = ensure_is_symbol property
 
-        if @pairs.key?(key)
-          if @pairs[key].is_a? Array
-            return @pairs[key].map {|value| retrieve_value_with_references(value) }
+        @pairs.key?(property)
+      end
+
+
+
+      def value_of(property)
+        property = ensure_is_symbol property
+
+        if @pairs.key?(property)
+          if @pairs[property].is_a? Array
+            return @pairs[property].map {|value| retrieve_value_with_references(value) }
           else
-            return retrieve_value_with_references(@pairs[key])
+            return retrieve_value_with_references(@pairs[property])
           end
-        elsif keys_with_prefix(key)
+        elsif properties_with_prefix(property)
           raise WDI::ConfigError,
             "This key doesn't represent a property in the WDI config file. " +
-            "Try `wdi config keys #{key}`."
+            "Try `wdi config keys #{property}`."
         else
           return false
         end
       end
 
-      def keys_with_value(value)
-        key_list = @pairs.select {|k,v| v == value}.keys
-        key_list.count == 0 ? false : key_list.map{|k| k.to_s}
+      def properties_with_value(value)
+        property_list = @pairs.select {|k,v| v == value}.keys
+        property_list.count == 0 ? false : property_list.map{|property| property.to_s}
       end
 
-      def set_key_value(key, value)
-        key = ensure_is_symbol key
+      def set_property(property, value)
+        property = ensure_is_symbol property
 
         raise WDI::ConfigError,
-            "This key is not in the WDI config file." unless @pairs.key?(key)
+            "This key is not in the WDI config file." unless @pairs.key?(property)
         raise WDI::ConfigError,
             "This value is not formatted correctly for the WDI config file." unless value.is_a?(String)
         disallow_bad_references_in value
-        @pairs[key] = value
+        @pairs[property] = value
       end
 
-      def add_key_value(key, value="")
-        key = ensure_is_symbol key
+      def add_property(property, value="")
+        property = ensure_is_symbol property
         disallow_bad_references_in value
 
-        if has_key?(key)
-          if @pairs[key] == value || (@pairs[key].is_a?(Array) && @pairs[key].include?(value))
+        if has_property?(property)
+          if @pairs[property] == value || (@pairs[property].is_a?(Array) && @pairs[property].include?(value))
             raise WDI::ConfigError,
-              "The property '#{key}' already contains the value '#{value}'. Can not add duplicates."
+              "The property '#{property}' already contains the value '#{value}'. Can not add duplicates."
           end
-          if @pairs[key].is_a? Array
-            @pairs[key] << value unless value == ""
-          elsif @pairs[key] == ""
-            @pairs[key] = value
+          if @pairs[property].is_a? Array
+            @pairs[property] << value unless value == ""
+          elsif @pairs[property] == ""
+            @pairs[property] = value
           else
-            @pairs[key] = [@pairs[key],value] unless value == ""
+            @pairs[property] = [@pairs[property],value] unless value == ""
           end
         else
-          @pairs[key] = value
+          @pairs[property] = value
         end
-        return @pairs[key]
+        return @pairs[property]
       end
 
       def remove_property(property)
         property = ensure_is_symbol property
-        unless has_key?(property)
+        unless has_property?(property)
           raise WDI::ConfigError,
             "This key is not in the WDI config file. Try `wdi config keys #{property}`."
         end
         @pairs.delete property
       end
 
-      def keys
-        @pairs.keys.map{|k| k.to_s}
-      end
-
-      def keys_with_prefix(prefix=nil)
-        return keys if prefix.nil?
-        key_list = keys.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
-        key_list.count == 0 ? false : key_list
+      def properties_with_prefix(prefix=nil)
+        return properties if prefix.nil?
+        property_list = properties.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
+        property_list.count == 0 ? false : property_list
       end
 
       def to_h
         result = {}
 
-        keys.each do |key|
-          key = ensure_is_symbol key
-          add_child_node(result, key, @pairs[key])
+        properties.each do |property|
+          property = ensure_is_symbol property
+          add_child_node(result, property, @pairs[property])
         end
 
         return result
@@ -124,11 +126,11 @@ module WDI
 
       private
 
-      def ensure_is_symbol(key)
-        if key.is_a? Symbol
-          return key
-        elsif key.is_a? String
-          return key.to_sym
+      def ensure_is_symbol(property)
+        if property.is_a? Symbol
+          return property
+        elsif property.is_a? String
+          return property.to_sym
         else
           raise WDI::ConfigError,
             "This property is not formatted correctly for the WDI config file."
@@ -145,7 +147,7 @@ module WDI
         value = interpolate_commands_in value
 
         return value if (value =~ VALUE_AS_KEY_REGEX).nil?
-        value.gsub(VALUE_AS_KEY_REGEX) {|reference| value_at(reference[1..-1])}
+        value.gsub(VALUE_AS_KEY_REGEX) {|reference| value_of(reference[1..-1])}
       end
 
       def ensure_format_of_pairs
@@ -169,7 +171,7 @@ module WDI
         if value.is_a? Array
           value.each do |value_member|
             value_member.scan(VALUE_AS_KEY_REGEX) do |reference|
-              unless has_key?(reference[1..-1])
+              unless has_property?(reference[1..-1])
                 raise WDI::ConfigError,
                   "This value is not formatted correctly for the WDI config file " + \
                   "(malformed reference)."
@@ -178,7 +180,7 @@ module WDI
           end
         else
           value.scan(VALUE_AS_KEY_REGEX) do |reference|
-            unless has_key?(reference[1..-1])
+            unless has_property?(reference[1..-1])
               raise WDI::ConfigError,
                 "This value is not formatted correctly for the WDI config file " + \
                 "(malformed reference)."
@@ -264,7 +266,7 @@ module WDI
     end
 
     def self.get(property)
-      self.config.value_at property
+      self.config.value_of property
     end
 
     def self.set(property, value)
@@ -288,7 +290,7 @@ module WDI
     end
 
     def self.has_property?(property)
-      self.config.has_key? property
+      self.config.has_property? property
     end
 
   end
