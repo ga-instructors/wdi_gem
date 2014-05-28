@@ -1,6 +1,4 @@
 require "wdi"
-require "wdi/folder"
-require "wdi/config"
 require "thor"
 
 module WDI
@@ -104,9 +102,9 @@ module WDI
       end
 
       desc "init", "initialize a new WDI directory at ~/.wdi"
-      method_option :load, 
+      method_option :load,
                     aliases: ["-l"],
-                    default: WDI::DEFAULT_CONFIG_FILE, 
+                    default: WDI::DEFAULT_CONFIG_FILE,
                     desc:    "Load the WDI config(.json) from a local file or URI path."
       method_option :force,
                     aliases: ["-f"],
