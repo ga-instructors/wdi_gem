@@ -6,12 +6,9 @@ require "pry"
 
 module WDI
   module Config
-    KEY_REGEX          = /^[a-z.]*$/ # only lowercase words separated by periods
-    VALUE_AS_KEY_REGEX = /:[a-z._]+/ # a value containing at least one word prefixed by ':'
+    KEY_REGEX          = /^[a-z]{2,}(?:_*[a-z]{2,})*$/  # only lowercase words of 2 or more letters, separated by underscores
+    VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
     ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
-    # COMMAND REGEX
-    # property regex
-    # value as property (reference) regex
 
     ##############################################################
     class ConfigFile
@@ -26,13 +23,14 @@ module WDI
       end
 
       def has_key?(key)
-        key = translate_incoming(key)
+        key = ensure_is_symbol key
+
         @pairs.key?(key)
       end
 
       def value_at(key)
-        key = translate_incoming(key)
-        
+        key = ensure_is_symbol key
+
         if @pairs.key?(key)
           if @pairs[key].is_a? Array
             return @pairs[key].map {|value| retrieve_value_with_references(value) }
@@ -40,7 +38,7 @@ module WDI
             return retrieve_value_with_references(@pairs[key])
           end
         elsif keys_with_prefix(key)
-          raise WDI::ConfigError, 
+          raise WDI::ConfigError,
             "This key doesn't represent a property in the WDI config file. " +
             "Try `wdi config keys #{key}`."
         else
@@ -50,11 +48,11 @@ module WDI
 
       def keys_with_value(value)
         key_list = @pairs.select {|k,v| v == value}.keys
-        key_list.count == 0 ? false : key_list.map{|k| translate_outgoing(k)}
+        key_list.count == 0 ? false : key_list.map{|k| k.to_s}
       end
 
       def set_key_value(key, value)
-        key = translate_incoming(key)
+        key = ensure_is_symbol key
 
         raise WDI::ConfigError,
             "This key is not in the WDI config file." unless @pairs.key?(key)
@@ -65,12 +63,12 @@ module WDI
       end
 
       def add_key_value(key, value="")
-        key = translate_incoming(key)
+        key = ensure_is_symbol key
         disallow_bad_references_in value
 
         if has_key?(key)
           if @pairs[key] == value || (@pairs[key].is_a?(Array) && @pairs[key].include?(value))
-            raise WDI::ConfigError, 
+            raise WDI::ConfigError,
               "The property '#{key}' already contains the value '#{value}'. Can not add duplicates."
           end
           if @pairs[key].is_a? Array
@@ -87,7 +85,7 @@ module WDI
       end
 
       def remove_property(property)
-        property = translate_incoming(property)
+        property = ensure_is_symbol property
         unless has_key?(property)
           raise WDI::ConfigError,
             "This key is not in the WDI config file. Try `wdi config keys #{property}`."
@@ -96,13 +94,12 @@ module WDI
       end
 
       def keys
-        @pairs.keys.map{|k| translate_outgoing(k)}
+        @pairs.keys.map{|k| k.to_s}
       end
 
       def keys_with_prefix(prefix=nil)
         return keys if prefix.nil?
-        prefix = translate_outgoing(translate_incoming(prefix)) # force correct string format
-        key_list = keys.select{|k| (k =~ Regexp.new(prefix)) == 0 }
+        key_list = keys.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
         key_list.count == 0 ? false : key_list
       end
 
@@ -110,7 +107,8 @@ module WDI
         result = {}
 
         keys.each do |key|
-          add_child_node(result, key, @pairs[translate_incoming(key)])
+          key = ensure_is_symbol key
+          add_child_node(result, key, @pairs[key])
         end
 
         return result
@@ -124,14 +122,15 @@ module WDI
         @pairs.to_s
       end
 
-    private
-      def translate_incoming(key)
-        if key.is_a? String
-          key.gsub(/\./, "_").to_sym
-        elsif key.is_a? Symbol
-          key
+      private
+
+      def ensure_is_symbol(key)
+        if key.is_a? Symbol
+          return key
+        elsif key.is_a? String
+          return key.to_sym
         else
-          raise WDI::ConfigError, 
+          raise WDI::ConfigError,
             "This property is not formatted correctly for the WDI config file."
         end
       end
@@ -142,45 +141,34 @@ module WDI
         end
       end
 
-      def translate_outgoing(key)
-        key.to_s.gsub(/_/,".")
-      end
-
       def retrieve_value_with_references(value)
         value = interpolate_commands_in value
-        check_value = disallow_bad_references_in value
-        
-        return value if (check_value =~ VALUE_AS_KEY_REGEX).nil?
-        check_value.gsub(VALUE_AS_KEY_REGEX) {|reference| value_at(reference[1..-1])}
+
+        return value if (value =~ VALUE_AS_KEY_REGEX).nil?
+        value.gsub(VALUE_AS_KEY_REGEX) {|reference| value_at(reference[1..-1])}
       end
 
       def ensure_format_of_pairs
         pairs.each_pair do |key, value|
-          key = translate_outgoing(key)
-
-          if (key =~ KEY_REGEX).nil? || key[0] == "." || key[-1] == "."
-            raise WDI::ConfigError, 
+          if (key =~ KEY_REGEX).nil?
+            raise WDI::ConfigError,
               "This property is not formatted correctly for the WDI config file."
           end
-          
-          if !(value.is_a?(String) || value.is_a?(Array))
+
+          if (value.is_a?(String) || value.is_a?(Array))
+            disallow_bad_references_in value
+          else
             raise WDI::ConfigError,
               "This value is not formatted correctly for the WDI config file " + \
               "(must be a string or an array of strings)."
-          else
-            disallow_bad_references_in value
           end
         end
       end
 
       def disallow_bad_references_in(value)
         if value.is_a? Array
-          value.each do |v|
-            check_value = v.gsub(VALUE_AS_KEY_REGEX) do |reference|
-              translate_outgoing(reference) # only translate to dots if matches reference
-            end
-
-            check_value.scan(VALUE_AS_KEY_REGEX) do |reference|
+          value.each do |value_member|
+            value_member.scan(VALUE_AS_KEY_REGEX) do |reference|
               unless has_key?(reference[1..-1])
                 raise WDI::ConfigError,
                   "This value is not formatted correctly for the WDI config file " + \
@@ -189,11 +177,7 @@ module WDI
             end
           end
         else
-          check_value = value.gsub(VALUE_AS_KEY_REGEX) do |reference|
-            translate_outgoing(reference) # only translate to dots if matches reference
-          end
-
-          check_value.scan(VALUE_AS_KEY_REGEX) do |reference|
+          value.scan(VALUE_AS_KEY_REGEX) do |reference|
             unless has_key?(reference[1..-1])
               raise WDI::ConfigError,
                 "This value is not formatted correctly for the WDI config file " + \
@@ -214,7 +198,7 @@ module WDI
       end
 
       def add_child_node(node, key, value)
-        parent, child = key.split(".", 2)
+        parent, child = key.to_s.split("_", 2)
 
         if child.nil?
           node[parent.to_sym] = value
@@ -226,7 +210,7 @@ module WDI
 
       def append_keys(parent, child)
         parent = (parent.nil? || parent == "") ? "" : parent.to_s + "_"
-        child  = (child.nil? || child == "")  ? "" : child.to_s
+        child  = (child.nil? || child == "")   ? "" : child.to_s
         parent + child
       end
     end
@@ -290,7 +274,6 @@ module WDI
 
     def self.add(property, values)
       values = (values == [] ? [""] : (values.is_a?(Array) ? values : [values]))
-      binding.pry
       values.each {|value| self.config.add_key_value(property, value)}
       self.save
     end

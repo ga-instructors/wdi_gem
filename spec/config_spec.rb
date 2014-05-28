@@ -12,8 +12,16 @@ describe WDI::Config do
         }
       },
       "go": {
-        "repo": ":repos.classes.current",
+        "repo": ":repos_classes_current",
         "pattern": "/w%02d/d0%d/:name"
+      },
+      "wdi": {
+        "files": [
+          "curriculum.json"
+        ],
+        "commands": [
+          "go"
+        ]
       }
     }
     JSON_CONTENTS
@@ -28,30 +36,61 @@ describe WDI::Config do
         }
       },
       "go": {
-        "repo": ":repos.classes.current",
+        "repo": ":repos_classes_current",
         "pattern": "/w%02d/d0%d/:name"
+      },
+      "wdi": {
+        "files": [
+          "curriculum.json"
+        ],
+        "commands": [
+          "go"
+        ]
       }
     }
     JSON_CONTENTS
+
+    correct_config_pairs = {
+      name:         "`whoami`",
+      base:         "`echo $HOME`/dev/wdi",
+      repos_classes_current: "`echo $HOME`/dev/wdi/class_name",
+      go_repo:      ":repos_classes_current",
+      go_pattern:   "/w%02d/d0%d/:name",
+      wdi_files:    ["curriculum.json"],
+      wdi_commands: ["go"]
+    }
+
+    correct_config_keys = ["name","base","repos_classes_current","go_repo","go_pattern","wdi_files","wdi_commands"]
+
+    correct_config_hash = {
+      name: "`whoami`",
+      base: "`echo $HOME`/dev/wdi",
+      repos: {
+        classes: {
+          current: "`echo $HOME`/dev/wdi/class_name"
+        }
+      },
+      go: {
+        repo:    ":repos_classes_current",
+        pattern: "/w%02d/d0%d/:name"
+      },
+      wdi: {
+        files:    ["curriculum.json"],
+        commands: ["go"]
+      }
+    }
 
     describe "#initialize" do
       it "raises an error if properties aren't formatted for the config to work" do
         expect {WDI::Config::ConfigFile.new('{"name1":"pj"}')}.to raise_error
         expect {WDI::Config::ConfigFile.new('{"name_":"pj"}')}.to raise_error
-        expect {WDI::Config::ConfigFile.new('{"name.":"pj"}')}.to raise_error
-        expect {WDI::Config::ConfigFile.new('{".name":"pj"}')}.to raise_error
+        expect {WDI::Config::ConfigFile.new('{"_name":"pj"}')}.to raise_error
+        expect {WDI::Config::ConfigFile.new('{"n":    "pj"}')}.to raise_error
       end
 
       it "allows bash commands in the values" do
-        keys_values = {
-          name: "`whoami`",
-          base: "`echo $HOME`/dev/wdi",
-          repos_classes_current: "`echo $HOME`/dev/wdi/class_name",
-          go_repo: ":repos.classes.current",
-          go_pattern: "/w%02d/d0%d/:name"
-        }
         expect(WDI::Config::ConfigFile.new(config_json_contents_with_interpolation).pairs).to \
-          eql(keys_values)
+          eql(correct_config_pairs)
       end
 
       it "does not allow string values to have colon-prefixed words unless they reference properties" do
@@ -71,7 +110,7 @@ describe WDI::Config do
       end
 
       it "works with dotted key strings appropriately" do
-        expect(config.value_at("repos.classes.current")).to \
+        expect(config.value_at("repos_classes_current")).to \
           eql("/Users/philip/dev/wdi/class_name")
       end
 
@@ -81,7 +120,7 @@ describe WDI::Config do
       end
 
       it "raises an error when the key exists but is not a leaf node" do
-        expect {config.value_at("repos.classes")}.to raise_error
+        expect {config.value_at("repos_classes")}.to raise_error
         expect {config.value_at(:repos_classes)}.to raise_error
       end
 
@@ -91,25 +130,25 @@ describe WDI::Config do
 
       context "the value is a property reference, ie starts with a colon" do
         it "returns the referenced property value" do
-          expect(config.value_at("go.repo")).to \
+          expect(config.value_at("go_repo")).to \
             eql("/Users/philip/dev/wdi/class_name")
         end
 
         it "works with either format for the reference" do
-          config.set_key_value "go.repo", ":repos_classes_current"
-          expect(config.value_at("go.repo")).to \
+          config.set_key_value "go_repo", ":repos_classes_current"
+          expect(config.value_at("go_repo")).to \
             eql("/Users/philip/dev/wdi/class_name")
         end
 
         it "interpolates if the reference is in the value" do
-          expect(config.value_at("go.pattern")).to eql("/w%02d/d0%d/philip")
+          expect(config.value_at("go_pattern")).to eql("/w%02d/d0%d/philip")
         end
 
         it "raises an error when the referenced property does not exist", :broken => true do
           allow(config).to receive(:disallow_bad_references_in) # not totally secure in this working...
-          config.set_key_value "go.repo", ":not_a_value"
+          config.set_key_value "go_repo", ":not_a_value"
 
-          expect {config.value_at("go.repo")}.to raise_error
+          expect {config.value_at("go_repo")}.to raise_error
         end
       end
 
@@ -121,7 +160,7 @@ describe WDI::Config do
         end
 
         it "works even when it was referenced" do
-          expect(config.value_at("go.repo")).to eql((`echo $HOME`).chomp + "/dev/wdi/class_name")
+          expect(config.value_at("go_repo")).to eql((`echo $HOME`).chomp + "/dev/wdi/class_name")
         end
       end
     end
@@ -134,7 +173,7 @@ describe WDI::Config do
 
       it "works when key is given in symbol format" do
         config.set_key_value :repos_classes_current, "/"
-        expect(config.value_at("repos.classes.current")).to eql("/")
+        expect(config.value_at("repos_classes_current")).to eql("/")
       end
 
       it "raises an error if the key doesn't exist" do
@@ -187,13 +226,13 @@ describe WDI::Config do
 
       it "returns the keys with dots replaced by underscores" do
         expect(config.keys_with_value("/Users/philip/dev/wdi/class_name")).to \
-          eql(["repos.classes.current"])
+          eql(["repos_classes_current"])
       end
 
       it "returns multiple keys if necessary" do
-        config.add_key_value("repos.instructors.current", "/Users/philip/dev/wdi/class_name")
+        config.add_key_value("repos_instructors_current", "/Users/philip/dev/wdi/class_name")
         expect(config.keys_with_value("/Users/philip/dev/wdi/class_name")).to \
-          eql(["repos.classes.current","repos.instructors.current"])
+          eql(["repos_classes_current","repos_instructors_current"])
       end
 
       it "returns false if the value is not present" do
@@ -203,11 +242,11 @@ describe WDI::Config do
 
     describe "#keys_with_prefix" do
       it "returns the keys with the given prefix" do
-        expect(config.keys_with_prefix("go")).to eql(["go.repo","go.pattern"])
+        expect(config.keys_with_prefix("go")).to eql(["go_repo","go_pattern"])
       end
 
       it "returns the key itself if the prefix is a key" do
-        expect(config.keys_with_prefix("go.repo")).to eql(["go.repo"])
+        expect(config.keys_with_prefix("go_repo")).to eql(["go_repo"])
       end
 
       it "returns false when the key is not present" do
@@ -215,15 +254,14 @@ describe WDI::Config do
       end
 
       it "returns all keys when given no prefix" do
-        keys = ["name","base","repos.classes.current","go.repo","go.pattern"]
-        expect(config.keys_with_prefix).to match_array(keys)
+        expect(config.keys_with_prefix).to match_array(correct_config_keys)
       end
     end
 
     describe "#add_key_value" do
       it "adds a new key with the given value" do
-        config.add_key_value("repos.instructors.current", "/Users/philip/dev/wdi/class_name")
-        expect(config.value_at("repos.instructors.current")).to eql("/Users/philip/dev/wdi/class_name")
+        config.add_key_value("repos_instructors_current", "/Users/philip/dev/wdi/class_name")
+        expect(config.value_at("repos_instructors_current")).to eql("/Users/philip/dev/wdi/class_name")
       end
 
       context "when a property is given but not a value" do
@@ -305,63 +343,27 @@ describe WDI::Config do
 
     describe "#pairs", :unnecessary => true do
       it "returns all of the key-value pairs" do
-        keys_values = {
-          name: "philip",
-          base: "/Users/philip/dev/wdi",
-          repos_classes_current: "/Users/philip/dev/wdi/class_name",
-          go_repo: ":repos.classes.current",
-          go_pattern: "/$1/$2/:name"
-        }
-        expect(config.pairs).to eql(keys_values)
+        expect(config.pairs).to eql(correct_config_pairs)
       end
     end
 
     describe "#keys", :unnecessary => true do
       it "returns all of the keys" do
-        keys = ["name","base","repos.classes.current","go.repo","go.pattern"]
-        expect(config.keys).to match_array(keys)
+        expect(config.keys).to match_array(correct_config_keys)
       end
     end
 
     describe "#to_h" do
       it "returns the config's pairs as a hash-tree" do
         config = WDI::Config::ConfigFile.new(config_json_contents_with_interpolation)
-        hash_tree = {
-          name: "`whoami`",
-          base: "`echo $HOME`/dev/wdi",
-          repos: {
-            classes: {
-              current: "`echo $HOME`/dev/wdi/class_name"
-            }
-          },
-          go: {
-            repo: ":repos.classes.current",
-            pattern: "/w%02d/d0%d/:name"
-          }
-        }
-
-        expect(config.to_h).to eql(hash_tree)
+        expect(config.to_h).to eql(correct_config_hash)
       end
     end
 
     describe "#to_json" do
       it "returns the config's pairs as a JSON string representing the hash-tree" do
         config = WDI::Config::ConfigFile.new(config_json_contents_with_interpolation)
-        hash_tree = {
-          name: "`whoami`",
-          base: "`echo $HOME`/dev/wdi",
-          repos: {
-            classes: {
-              current: "`echo $HOME`/dev/wdi/class_name"
-            }
-          },
-          go: {
-            repo: ":repos.classes.current",
-            pattern: "/w%02d/d0%d/:name"
-          }
-        }
-
-        expect(config.to_json).to eql(JSON.pretty_generate(hash_tree)) #
+        expect(config.to_json).to eql(JSON.pretty_generate(correct_config_hash)) #
       end
     end
 
