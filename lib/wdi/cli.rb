@@ -82,6 +82,19 @@ module WDI
       end
     end
 
+    class Files < Thor
+      desc "add", "add a new file to the WDI files directory"
+      def add(filename)
+        begin
+          unless WDI::Folder::Files.exists(filename)
+            WDI::Folder::Files.create(filename)
+          end
+        rescue WDI::ConfigError => e
+          say e.message, :red
+        end
+      end
+    end
+
     class Wdi < Thor
       #class_option :version, alias: "-v", type: :boolean
 
@@ -110,6 +123,9 @@ module WDI
 
       desc "config SUBCOMMAND ...ARGS", "interact with the WDI config file"
       subcommand "config", WDI::CLI::Config
+
+      desc "files SUBCOMMAND ...ARGS", "interact with the WDI files directory"
+      subcommand "files", WDI::CLI::Files
     end
   end
 end

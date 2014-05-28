@@ -25,7 +25,7 @@ As long as there is no `~/.wdi` directory, this command creates one. By default 
 #### Editing the WDI directory
 
 ```bash
-# wdi add-files <files>
+# wdi files add <files>
 ```
 
 ... TBD (adds a file or files to the directory, and requisite keys *files.filename* to the config)...
@@ -36,8 +36,8 @@ As long as there is no `~/.wdi` directory, this command creates one. By default 
 wdi config set <key(.key...)> <value>
 wdi config get <key(.key...)>
 
-# wdi config add <key(.key...)> <value>
-# wdi config remove <key(.key...)> (--force)
+wdi config add <key(.key...)> <value>
+wdi config remove <key(.key...)> (--force)
 
 wdi config keys (<key>)
 
