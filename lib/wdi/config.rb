@@ -289,7 +289,8 @@ module WDI
     end
 
     def self.add(property, values)
-      values = (values == [] ? [""] : values)
+      values = (values == [] ? [""] : (values.is_a?(Array) ? values : [values]))
+      binding.pry
       values.each {|value| self.config.add_key_value(property, value)}
       self.save
     end
