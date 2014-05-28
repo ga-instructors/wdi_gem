@@ -13,7 +13,7 @@ describe WDI::Config do
       },
       "go": {
         "repo": ":repos.classes.current",
-        "pattern": "/$1/$2/:name"
+        "pattern": "/w%02d/d0%d/:name"
       }
     }
     JSON_CONTENTS
@@ -29,7 +29,7 @@ describe WDI::Config do
       },
       "go": {
         "repo": ":repos.classes.current",
-        "pattern": "/$1/$2/:name"
+        "pattern": "/w%02d/d0%d/:name"
       }
     }
     JSON_CONTENTS
@@ -41,19 +41,19 @@ describe WDI::Config do
         expect {WDI::Config::ConfigFile.new('{"name.":"pj"}')}.to raise_error
         expect {WDI::Config::ConfigFile.new('{".name":"pj"}')}.to raise_error
       end
-      
+
       it "allows bash commands in the values" do
         keys_values = {
           name: "`whoami`",
           base: "`echo $HOME`/dev/wdi",
           repos_classes_current: "`echo $HOME`/dev/wdi/class_name",
           go_repo: ":repos.classes.current",
-          go_pattern: "/$1/$2/:name"
+          go_pattern: "/w%02d/d0%d/:name"
         }
         expect(WDI::Config::ConfigFile.new(config_json_contents_with_interpolation).pairs).to \
           eql(keys_values)
       end
-    
+
       it "does not allow string values to have colon-prefixed words unless they reference properties" do
         expect {WDI::Config::ConfigFile.new('{"name":":not_name"}')}.to raise_error
       end
@@ -102,7 +102,7 @@ describe WDI::Config do
         end
 
         it "interpolates if the reference is in the value" do
-          expect(config.value_at("go.pattern")).to eql("/$1/$2/philip")
+          expect(config.value_at("go.pattern")).to eql("/w%02d/d0%d/philip")
         end
 
         it "raises an error when the referenced property does not exist", :broken => true do
@@ -115,7 +115,7 @@ describe WDI::Config do
 
       context "the value contains an allowed bash command" do
         let!(:config) {WDI::Config::ConfigFile.new(config_json_contents_with_interpolation)}
-        
+
         it "returns the value with the command result interpolated" do
           expect(config.value_at("base")).to eql((`echo $HOME`).chomp + "/dev/wdi")
         end
@@ -251,7 +251,7 @@ describe WDI::Config do
 
         it "throws an error if the value exists in the array already" do
           expect {config.add_key_value("name", "philip")}.to raise_error
-        end 
+        end
       end
 
       context "when the given key already exists and its value is an empty string" do
@@ -278,7 +278,7 @@ describe WDI::Config do
         it "throws an error if the value exists in the array already" do
           config.add_key_value("name", "felipe")
           expect {config.add_key_value("name", "felipe")}.to raise_error
-        end 
+        end
       end
 
       context "with string values that have colon-prefixed words" do
@@ -336,7 +336,7 @@ describe WDI::Config do
           },
           go: {
             repo: ":repos.classes.current",
-            pattern: "/$1/$2/:name"
+            pattern: "/w%02d/d0%d/:name"
           }
         }
 
@@ -357,10 +357,10 @@ describe WDI::Config do
           },
           go: {
             repo: ":repos.classes.current",
-            pattern: "/$1/$2/:name"
+            pattern: "/w%02d/d0%d/:name"
           }
         }
-        
+
         expect(config.to_json).to eql(JSON.pretty_generate(hash_tree)) #
       end
     end
