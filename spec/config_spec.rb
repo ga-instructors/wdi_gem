@@ -60,7 +60,7 @@ describe WDI::Config do
       wdi_commands: ["go"]
     }
 
-    correct_config_properties = ["name","base","repos_classes_current","go_repo","go_pattern","wdi_files","wdi_commands"]
+    correct_config_properties = [:name,:base,:repos_classes_current,:go_repo,:go_pattern,:wdi_files,:wdi_commands]
 
     correct_config_hash = {
       name: "`whoami`",
@@ -242,11 +242,11 @@ describe WDI::Config do
 
     describe "#properties_with_prefix" do
       it "returns the properties with the given prefix" do
-        expect(config.properties_with_prefix("go")).to eql(["go_repo","go_pattern"])
+        expect(config.properties_with_prefix("go")).to eql([:go_repo,:go_pattern])
       end
 
       it "returns the property itself if the prefix is a property" do
-        expect(config.properties_with_prefix("go_repo")).to eql(["go_repo"])
+        expect(config.properties_with_prefix("go_repo")).to eql([:go_repo])
       end
 
       it "returns false when the property is not present" do

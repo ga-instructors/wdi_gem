@@ -10,6 +10,8 @@ module WDI
     VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
     ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
 
+    # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
+
     ##############################################################
     class ConfigFile
       attr_reader :pairs
@@ -23,33 +25,23 @@ module WDI
       end
 
       def properties
-        @pairs.keys.map{|property| property.to_s}
+        pairs.keys #.map{|property| property}
+      end
+
+      def properties_with_prefix(prefix=nil)
+        return properties if prefix.nil?
+        property_list = properties.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
+        property_list.count == 0 ? false : property_list
       end
 
       def has_property?(property)
         property = ensure_is_symbol property
-
-        @pairs.key?(property)
+        ensured_has_property?(property)
       end
-
-
 
       def value_of(property)
         property = ensure_is_symbol property
-
-        if @pairs.key?(property)
-          if @pairs[property].is_a? Array
-            return @pairs[property].map {|value| retrieve_value_with_references(value) }
-          else
-            return retrieve_value_with_references(@pairs[property])
-          end
-        elsif properties_with_prefix(property)
-          raise WDI::ConfigError,
-            "This key doesn't represent a property in the WDI config file. " +
-            "Try `wdi config keys #{property}`."
-        else
-          return false
-        end
+        ensured_value_of(property)
       end
 
       def properties_with_value(value)
@@ -59,50 +51,17 @@ module WDI
 
       def set_property(property, value)
         property = ensure_is_symbol property
-
-        raise WDI::ConfigError,
-            "This key is not in the WDI config file." unless @pairs.key?(property)
-        raise WDI::ConfigError,
-            "This value is not formatted correctly for the WDI config file." unless value.is_a?(String)
-        disallow_bad_references_in value
-        @pairs[property] = value
+        ensured_set_property(property, value)
       end
 
       def add_property(property, value="")
         property = ensure_is_symbol property
-        disallow_bad_references_in value
-
-        if has_property?(property)
-          if @pairs[property] == value || (@pairs[property].is_a?(Array) && @pairs[property].include?(value))
-            raise WDI::ConfigError,
-              "The property '#{property}' already contains the value '#{value}'. Can not add duplicates."
-          end
-          if @pairs[property].is_a? Array
-            @pairs[property] << value unless value == ""
-          elsif @pairs[property] == ""
-            @pairs[property] = value
-          else
-            @pairs[property] = [@pairs[property],value] unless value == ""
-          end
-        else
-          @pairs[property] = value
-        end
-        return @pairs[property]
+        ensured_add_property(property, value)
       end
 
       def remove_property(property)
         property = ensure_is_symbol property
-        unless has_property?(property)
-          raise WDI::ConfigError,
-            "This key is not in the WDI config file. Try `wdi config keys #{property}`."
-        end
-        @pairs.delete property
-      end
-
-      def properties_with_prefix(prefix=nil)
-        return properties if prefix.nil?
-        property_list = properties.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
-        property_list.count == 0 ? false : property_list
+        ensured_remove_property(property)
       end
 
       def to_h
@@ -125,6 +84,64 @@ module WDI
       end
 
       private
+
+      def ensured_has_property?(property)
+        @pairs.key?(property)
+      end
+
+      def ensured_value_of(property)
+        if @pairs.key?(property)
+          if @pairs[property].is_a? Array
+            return @pairs[property].map {|value| retrieve_value_with_references(value) }
+          else
+            return retrieve_value_with_references(@pairs[property])
+          end
+        elsif properties_with_prefix(property)
+          raise WDI::ConfigError,
+            "This key doesn't represent a property in the WDI config file. " +
+            "Try `wdi config keys #{property}`."
+        else
+          return false
+        end
+      end
+
+      def ensured_set_property(property, value)
+        raise WDI::ConfigError,
+            "This key is not in the WDI config file." unless @pairs.key?(property)
+        raise WDI::ConfigError,
+            "This value is not formatted correctly for the WDI config file." unless value.is_a?(String)
+        disallow_bad_references_in value
+        @pairs[property] = value
+      end
+
+      def ensured_add_property(property, value)
+        disallow_bad_references_in value
+
+        if has_property?(property)
+          if @pairs[property] == value || (@pairs[property].is_a?(Array) && @pairs[property].include?(value))
+            raise WDI::ConfigError,
+              "The property '#{property}' already contains the value '#{value}'. Can not add duplicates."
+          end
+          if @pairs[property].is_a? Array
+            @pairs[property] << value unless value == ""
+          elsif @pairs[property] == ""
+            @pairs[property] = value
+          else
+            @pairs[property] = [@pairs[property],value] unless value == ""
+          end
+        else
+          @pairs[property] = value
+        end
+        return @pairs[property]
+      end
+
+      def ensured_remove_property(property)
+        unless has_property?(property)
+          raise WDI::ConfigError,
+            "This key is not in the WDI config file. Try `wdi config keys #{property}`."
+        end
+        @pairs.delete property
+      end
 
       def ensure_is_symbol(property)
         if property.is_a? Symbol
