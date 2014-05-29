@@ -1,3 +1,5 @@
+require "wdi"
+
 require "open-uri"
 require "json"
 require "thor"
@@ -5,61 +7,69 @@ require "thor"
 require "pry"
 
 module WDI
-  module Config
-    KEY_REGEX          = /^[a-z]{2,}(?:_*[a-z]{2,})*$/  # only lowercase words of 2 or more letters, separated by underscores
-    VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
-    ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
+  module Configuration
+    # KEY_REGEX          = /^[a-z]{2,}(?:_*[a-z]{2,})*$/  # only lowercase words of 2 or more letters, separated by underscores
+    # VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
+    # ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
     # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
 
+    module Utilities
+      def local_file_path
+        File.expand_path "config.json", WDI::DIRECTORY_PATH
+      end
 
-    def self.local_file_path
-      File.expand_path("config.json", File.expand_path(".wdi", "~"))
-    end
+      def exists?
+        File.exists? local_file_path
+      end
 
-    def self.exists?
-      File.exists?(self.path)
-    end
+      def read_from(config_uri)
+        begin
+          uri = URI(config_uri)
+          json_configuration = ["http", "https"].include?(uri.scheme) ? uri.open.read : IO.read(config_uri)
+          return JSON.parse(json_configuration, symbolize_names: true)
 
-    def self.read_from(config_uri)
-      begin
-        uri = URI(config_uri)
-        json_configuration = ["http", "https"].include?(uri.scheme) ? uri.open.read : IO.read(config_uri)
-        return JSON.parse(json_configuration, symbolize_names: true)
+        rescue Errno::ENOENT => e
+          raise WDI::ConfigError, "No file at this path. Use 'http://' prefix if URI."
+        rescue URI::InvalidURIError => e
+          raise WDI::ConfigError, "Malformed URI. Could not find file at this path."
+        rescue OpenURI::HTTPError => e
+          raise WDI::ConfigError, "Provided URI can not be found. Ensure that the link is active."
+        rescue JSON::ParserError => e
+          raise WDI::ConfigError, "Provided file is not correctly formatted JSON."
+        end
+      end
 
-      rescue Errno::ENOENT => e
-        raise WDI::ConfigError, "No file at this path. Use 'http://' prefix if URI."
-      rescue URI::InvalidURIError => e
-        raise WDI::ConfigError, "Malformed URI. Could not find file at this path."
-      rescue OpenURI::HTTPError => e
-        raise WDI::ConfigError, "Provided URI can not be found. Ensure that the link is active."
-      rescue JSON::ParserError => e
-        raise WDI::ConfigError, "Provided file is not correctly formatted JSON."
+      def read
+        read_from local_file_path
+      end
+
+      def write_to(config_uri, configuration)
+        File.open(config_uri, "w+") do |f|
+          f.write configuration.to_json
+        end
+      end
+
+      def save(this_configuration)
+        write_to local_file_path, this_configuration
       end
     end
 
-    def self.read
-      read_from local_file_path
+    class ConfigState
+      extends Utilities
     end
 
-    def self.write_to(config_uri, configuration)
-      File.open(config_uri, "w+") do |f|
-        f.write configuration.to_json
-      end
+    class ConfigHash < Hash
+
     end
-
-    def self.save(this_configuration)
-      write_to local_file_path, this_configuration
-    end
-
-
 
     class ConfigFile
       class << self
-        Config.read.each_key do |key|
-          define_method(key) do
-            return "haha!"
-          end
-        end
+        # config = ConfigState.parse_file
+        # config.hash.each_key do |key|
+        #   define_method(key) do
+        #     ConfigHash.new()
+        #   end
+        # end
       end
     end
 

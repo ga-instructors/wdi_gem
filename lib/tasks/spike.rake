@@ -12,7 +12,7 @@ task :play do
   require "wdi"
   require "pry"
 
-  include WDI::Config
+  include WDI::Configuration
   include WDI::Directory
 
   binding.pry

@@ -1,4 +1,5 @@
-require "wdi/config"
+require "wdi"
+
 require "fileutils"
 require "json"
 
