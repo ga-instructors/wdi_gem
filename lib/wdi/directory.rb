@@ -1,8 +1,9 @@
+require "wdi/config"
 require "fileutils"
 require "json"
 
 module WDI
-  module Folder
+  module Directory
     WDI_FILES_PATH = File.expand_path(".wdi/data", "~")
 
     class Files
@@ -45,8 +46,8 @@ module WDI
     def self.create(remove_current_directory)
       self.remove! if remove_current_directory
 
-      raise WDI::FolderError, \
-        "The .wdi folder already exists. Either remove it to initialize anew, " + \
+      raise WDI::DirectoryError, \
+        "The .wdi directory already exists. Either remove it to initialize anew, " + \
         "or use `wdi config` to edit the config file."  if self.exists?
 
       Dir.mkdir self.path
