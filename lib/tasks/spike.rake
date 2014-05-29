@@ -1,11 +1,11 @@
 
 desc "Set up environment to play with gem state..."
-task :spike => [:reset, :play]
+task :spike => [:update, :play]
 
-task :reset do
+task :update do
   `gem uninstall wdi -x --force`
-  `rake build`
-  `gem install pkg/wdi-0.0.4.gem`
+  Rake::Task["build"].execute
+  `gem install #{File.expand_path("pkg/wdi-#{WDI::VERSION}.gem")}`
 end
 
 task :play do
