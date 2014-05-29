@@ -12,8 +12,7 @@ module WDI
 
     # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
 
-    ##############################################################
-    class ConfigFile
+    class ConfigFile ###########################################################
       attr_reader :pairs
 
       def initialize(json_configuration)
@@ -25,50 +24,41 @@ module WDI
       end
 
       def properties
-        pairs.keys #.map{|property| property}
+        pairs.keys
       end
 
       def properties_with_prefix(prefix=nil)
-        return properties if prefix.nil?
-        property_list = properties.select{|k| (k =~ Regexp.new(prefix.to_s)) == 0 }
-        property_list.count == 0 ? false : property_list
-      end
-
-      def has_property?(property)
-        property = ensure_is_symbol property
-        ensured_has_property?(property)
-      end
-
-      def value_of(property)
-        property = ensure_is_symbol property
-        ensured_value_of(property)
+        properties.select {|property| (property =~ Regexp.new(prefix.to_s)) == 0 }
       end
 
       def properties_with_value(value)
-        property_list = @pairs.select {|k,v| v == value}.keys
-        property_list.count == 0 ? false : property_list.map{|property| property.to_s}
+        pairs.select {|k,v| v == value}.keys
+      end
+
+      def has_property?(property)
+        ensured_has_property? ensure_is_symbol(property)
+      end
+
+      def value_of(property)
+        ensured_value_of ensure_is_symbol(property)
       end
 
       def set_property(property, value)
-        property = ensure_is_symbol property
-        ensured_set_property(property, value)
+        ensured_set_property ensure_is_symbol(property), value
       end
 
       def add_property(property, value="")
-        property = ensure_is_symbol property
-        ensured_add_property(property, value)
+        ensured_add_property ensure_is_symbol(property), value
       end
 
       def remove_property(property)
-        property = ensure_is_symbol property
-        ensured_remove_property(property)
+        ensured_remove_property ensure_is_symbol(property)
       end
 
       def to_h
         result = {}
 
         properties.each do |property|
-          property = ensure_is_symbol property
           add_child_node(result, property, @pairs[property])
         end
 
@@ -80,28 +70,22 @@ module WDI
       end
 
       def to_s
-        @pairs.to_s
+        pairs.to_s
       end
 
-      private
+      private ##################################################################
 
       def ensured_has_property?(property)
-        @pairs.key?(property)
+        pairs.key?(property)
       end
 
       def ensured_value_of(property)
-        if @pairs.key?(property)
-          if @pairs[property].is_a? Array
-            return @pairs[property].map {|value| retrieve_value_with_references(value) }
+        if ensured_has_property? property
+          if pairs[property].is_a? Array
+            return pairs[property].map {|value| retrieve_value_with_references(value) }
           else
-            return retrieve_value_with_references(@pairs[property])
+            return retrieve_value_with_references(pairs[property])
           end
-        elsif properties_with_prefix(property)
-          raise WDI::ConfigError,
-            "This key doesn't represent a property in the WDI config file. " +
-            "Try `wdi config keys #{property}`."
-        else
-          return false
         end
       end
 
@@ -111,28 +95,29 @@ module WDI
         raise WDI::ConfigError,
             "This value is not formatted correctly for the WDI config file." unless value.is_a?(String)
         disallow_bad_references_in value
-        @pairs[property] = value
+        pairs[property] = value
       end
 
       def ensured_add_property(property, value)
         disallow_bad_references_in value
 
-        if has_property?(property)
-          if @pairs[property] == value || (@pairs[property].is_a?(Array) && @pairs[property].include?(value))
+        if ensured_has_property? property
+          if pairs[property] == value || (pairs[property].is_a?(Array) && pairs[property].include?(value))
             raise WDI::ConfigError,
               "The property '#{property}' already contains the value '#{value}'. Can not add duplicates."
           end
-          if @pairs[property].is_a? Array
-            @pairs[property] << value unless value == ""
-          elsif @pairs[property] == ""
-            @pairs[property] = value
+          if pairs[property].is_a? Array
+            pairs[property] << value unless value == ""
+          elsif pairs[property] == ""
+            pairs[property] = value
           else
-            @pairs[property] = [@pairs[property],value] unless value == ""
+            pairs[property] = [pairs[property],value] unless value == ""
           end
         else
-          @pairs[property] = value
+          pairs[property] = value
         end
-        return @pairs[property]
+        
+        return pairs[property]
       end
 
       def ensured_remove_property(property)
@@ -140,7 +125,7 @@ module WDI
           raise WDI::ConfigError,
             "This key is not in the WDI config file. Try `wdi config keys #{property}`."
         end
-        @pairs.delete property
+        pairs.delete property
       end
 
       def ensure_is_symbol(property)
@@ -211,7 +196,7 @@ module WDI
           if value.is_a?(Hash)
             recursive_build_pairs_from(value, append_keys(parent_key, child_key))
           else
-            @pairs[append_keys(parent_key, child_key).to_sym] = value
+            pairs[append_keys(parent_key, child_key).to_sym] = value
           end
         end
       end

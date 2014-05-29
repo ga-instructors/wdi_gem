@@ -11,6 +11,10 @@ module WDI
           say "The property '#{key}' in the WDI config file has been set to '#{value}'.", :green
         rescue WDI::ConfigError => e
           say e.message, :red
+          # TODO --
+          # Attempt to integrate this message...
+          # "This key doesn't represent a property in the WDI config file. " +
+          # "Try `wdi config keys #{property}`."
         end
       end
 
