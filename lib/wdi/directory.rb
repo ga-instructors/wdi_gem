@@ -4,7 +4,7 @@ require "json"
 
 module WDI
   module Directory
-    WDI_FILES_PATH = File.expand_path(".wdi/data", "~")
+    # WDI_FILES_PATH = File.expand_path(".wdi/data", "~")
 
     class Files
       def self.exists(name)
