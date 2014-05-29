@@ -4,13 +4,15 @@ Use this gem to create WDI configurations, make changes to them, and access them
 
 The purpose of having a standardized configuration wrapper is to ease the creation of classroom tools and practices relating directly to the WDI development environment.
 
-To that end, there are three major parts to this gem:
+**To that end, there are three major parts to this gem:**
 
 1. a module you can include in your own tools,
 2. a command line tool you can use in the terminal or in scripts (such as the Installfest script),
 3. a suggested set of standards for creating tools that will work in any WDI classroom, and with other WDI classroom tools. This effort is just beginning, and we are looking for input on how these standards should work.
 
 Send me (PJ) any suggestions or changes either in HipChat or as a pull request!
+
+This gem is heavily indebted to designs used in [Confstruct](https://github.com/mbklein/confstruct) and [Hashie](https://github.com/intridea/hashie).
 
 ## Installation
 
