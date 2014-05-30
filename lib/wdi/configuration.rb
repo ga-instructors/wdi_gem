@@ -1,6 +1,7 @@
 require "wdi"
-require "wdi/directory/file_accesss"
+require "wdi/directory/file_access"
 
+require "delegate"
 require "open-uri"
 require "json"
 require "thor"
@@ -11,26 +12,50 @@ module WDI
   module Configuration
     # KEY_REGEX          = /^[a-z]{2,}(?:_*[a-z]{2,})*$/  # only lowercase words of 2 or more letters, separated by underscores
     # VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
-    # ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
+    ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
     # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
 
-
-
-    class ConfigState
+    module ConfigMethods
+      # def respond_to?(name, include_private = false)
+      #   return true if key?(name.to_s) || key?(name.to_sym)
+      #   super
+      # end
+      #
+      # def method_missing(name, *args)
+      #   return self[name.to_s] if key?(name.to_s)
+      #   return self[name.to_sym] if key?(name.to_sym)
+      #   super
+      # end
     end
 
-    class ConfigHash < Hash
-      extend WDI::Directory::FileAccess
+    class ConfigHash < SimpleDelegator
+      include ConfigMethods
+
     end
 
     class ConfigFile
-      @@hello = "heyo"
+      extend WDI::Directory::FileAccess
+
+      @@hash = self.local_configuration
+
       class << self
-        config = ConfigState.parse_file
-        config.hash.each_key do |key|
+        @@hash.each_key do |key|
           define_method(key) do
-            puts hello
+            value = @@hash[key]
+            if value.class == Hash
+              return ConfigHash.new(value)
+            else
+              return interpolate_commands_in(value)
+            end
           end
+        end
+      end
+
+      private
+
+      def self.interpolate_commands_in(value)
+        value.gsub(ALLOWED_BASH_REGEX) do |command|
+          eval(command).chomp
         end
       end
     end
