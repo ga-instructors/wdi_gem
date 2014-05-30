@@ -1,4 +1,5 @@
 require "wdi"
+require "wdi/directory/file_accesss"
 
 require "open-uri"
 require "json"
@@ -13,63 +14,24 @@ module WDI
     # ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
     # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
 
-    module Utilities
-      def local_file_path
-        File.expand_path "config.json", WDI::DIRECTORY_PATH
-      end
 
-      def exists?
-        File.exists? local_file_path
-      end
-
-      def read_from(config_uri)
-        begin
-          uri = URI(config_uri)
-          json_configuration = ["http", "https"].include?(uri.scheme) ? uri.open.read : IO.read(config_uri)
-          return JSON.parse(json_configuration, symbolize_names: true)
-
-        rescue Errno::ENOENT => e
-          raise WDI::ConfigError, "No file at this path. Use 'http://' prefix if URI."
-        rescue URI::InvalidURIError => e
-          raise WDI::ConfigError, "Malformed URI. Could not find file at this path."
-        rescue OpenURI::HTTPError => e
-          raise WDI::ConfigError, "Provided URI can not be found. Ensure that the link is active."
-        rescue JSON::ParserError => e
-          raise WDI::ConfigError, "Provided file is not correctly formatted JSON."
-        end
-      end
-
-      def read
-        read_from local_file_path
-      end
-
-      def write_to(config_uri, configuration)
-        File.open(config_uri, "w+") do |f|
-          f.write configuration.to_json
-        end
-      end
-
-      def save(this_configuration)
-        write_to local_file_path, this_configuration
-      end
-    end
 
     class ConfigState
-      extends Utilities
     end
 
     class ConfigHash < Hash
-
+      extend WDI::Directory::FileAccess
     end
 
     class ConfigFile
+      @@hello = "heyo"
       class << self
-        # config = ConfigState.parse_file
-        # config.hash.each_key do |key|
-        #   define_method(key) do
-        #     ConfigHash.new()
-        #   end
-        # end
+        config = ConfigState.parse_file
+        config.hash.each_key do |key|
+          define_method(key) do
+            puts hello
+          end
+        end
       end
     end
 
