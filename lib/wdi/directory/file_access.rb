@@ -1,8 +1,10 @@
+require "wdi/directory"
+
 module WDI
   module Directory
     module FileAccess
       def local_file_path_of(filename)
-        File.expand_path filename, WDI::DIRECTORY_PATH
+        File.expand_path filename, WDI::Directory::PATH
       end
 
       def local_configuration_path

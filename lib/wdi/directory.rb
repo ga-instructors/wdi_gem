@@ -5,7 +5,7 @@ require "json"
 
 module WDI
   module Directory
-    DIRECTORY_PATH = File.expand_path(".wdi", "~")
+    PATH = File.expand_path(".wdi", "~")
 
     # class Files
     #   def self.exists(name)
@@ -54,6 +54,6 @@ module WDI
     # def self.remove!
     #   FileUtils.rm_rf(self.path) if self.exists?
     # end
-    
+
   end
 end
