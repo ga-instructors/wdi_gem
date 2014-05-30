@@ -9,11 +9,10 @@ task :update do
 end
 
 task :play do
-  require "wdi"
+  require "wdi/configuration"
   require "pry"
 
   include WDI::Configuration
-  include WDI::Directory
 
   binding.pry
 end
