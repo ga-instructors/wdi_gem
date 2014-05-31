@@ -2,7 +2,7 @@ require "wdi/directory"
 
 module WDI
   module Directory
-    module FileAccess
+    class FileAccessor
       def local_file_path_of(filename)
         File.expand_path filename, WDI::Directory::PATH
       end
@@ -32,14 +32,14 @@ module WDI
         configuration_from local_configuration_path
       end
 
-      def save_self_locally_as(filename)
+      def save_locally_as(filename, contents)
         File.open local_file_path_of(filename), "w+" do |f|
           f.write self.to_s
         end
       end
 
-      def save_self_locally_as_configuration
-        save_locally_as "config.json"
+      def save_locally_as_configuration(contents)
+        save_locally_as "config.json", contents
       end
 
       def who_is_self?
