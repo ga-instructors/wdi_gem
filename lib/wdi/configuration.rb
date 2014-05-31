@@ -1,5 +1,5 @@
 require "wdi"
-require "wdi/directory/file_access"
+require "wdi/directory/file_accessor"
 
 require "delegate"
 require "open-uri"
@@ -10,28 +10,20 @@ require "pry"
 
 module WDI
   module Configuration
-    # KEY_REGEX          = /^[a-z]{2,}(?:_*[a-z]{2,})*$/  # only lowercase words of 2 or more letters, separated by underscores
-    # VALUE_AS_KEY_REGEX = /:[a-z]{2,}(?:_*[a-z]{2,})*/   # same formatting as a key (but not for whole value), prefixed with a colon
-    ALLOWED_BASH_REGEX = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
-    # TODO PJ: problem with the regexes: they don't allow for key names with numbers or spaces, such as "WDI NYC Sep 2014"
+    # TODO PJ: problem with the regexes: they don't allow for key names with
+    #          numbers or spaces, such as "WDI NYC Sep 2014"
+    # only lowercase words of 2 or more letters, separated by underscores
+    # ALLOWED_KEY_FORMAT = /^[a-z]{2,}(?:_*[a-z]{2,})*$/
+    # same formatting as a key (but not for whole value), prefixed with a colon
+    # ALLOWED_KEY_REFERENCE_FORMAT_WHEN_VALUE = /:[a-z]{2,}(?:_*[a-z]{2,})*/
+    ALLOWED_BASH_FORMAT_WHEN_VALUE = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
 
-    module ConfigMethods
-      # def respond_to?(name, include_private = false)
-      #   return true if key?(name.to_s) || key?(name.to_sym)
-      #   super
-      # end
-      #
-      # def method_missing(name, *args)
-      #   return self[name.to_s] if key?(name.to_s)
-      #   return self[name.to_sym] if key?(name.to_sym)
-      #   super
-      # end
-
-
-    end
+    module ConfigMethods; end # let's figure out how to name the internal dynamic
+                              # better
 
     class ConfigHash
       include ConfigMethods
+      include WDI::Directory
 
       extend Forwardable
       def_delegators :@hash, :==, :[], :[]=, :each,  :each_key, :each_pair,
@@ -40,69 +32,78 @@ module WDI
                      :to_a, :to_h, :to_hash, :to_json, :to_s, :value?, :values,
                      :value_at
 
-      @@full_configuration = {}
+      def initialize(json_hash = FileAccessor.local_config) #, options = {})
 
-      def initialize(json_hash)
         @hash = json_hash
-        @hash.each_key do |key|
+        @hash.each_pair do |key, value|
 
-          define_singleton_method :"#{key}" do |options = {}|
+          define_singleton_method key do |options = {}|
             interpolate = (options[:interpolate] != false)
-            value = @hash[key]
-            if value.class == Hash
+            if value.is_a? Hash
               return ConfigHash.new(value)
             else
               if interpolate
-                return interpolate_commands_in(value)
+                if value.is_a? Array
+                  return value.map {|item| interpolate_commands_in item}
+                else
+                  return interpolate_commands_in(value)
+                end
               else
                 return value
               end
             end
           end
 
+          if value.is_a? String
+            define_singleton_method :"#{key}=" do |value|
+              @hash[key] = value
+            end
+          end
 
         end
+      end
+
+      def save
+        FileAccessor.save_locally_as "#{CONF}.bk", FileAccessor.local_config.to_json
+        FileAccessor.save_locally_as "#{CONF}.tmp", ConfigFile.full_configuration.to_json
+        # FileAccessor.save_locally_as_config, ConfigFile.full_configuration
+        return true
       end
 
       private
 
-      def self.set_full_config_as(configuration_hash)
-        @@full_configuration = ConfigHash.new(configuration_hash)
-        # return @@full_configuration
-      end
-
       def interpolate_commands_in(value)
-        value.gsub(ALLOWED_BASH_REGEX) do |command|
+        value.gsub ALLOWED_BASH_FORMAT_WHEN_VALUE do |command|
           eval(command).chomp
         end
       end
+
     end
 
     class ConfigFile
-      extend WDI::Directory::FileAccess
+      # include WDI::Directory
 
-      @@config_hash = ConfigHash.set_full_config_as(self.local_configuration)
+      @@full_configuration = ConfigHash.new
+
+      def self.full_configuration
+        @@full_configuration
+      end
+
+      def self.full_configuration=(configuration_hash)
+        @@full_configuration = ConfigHash.new(configuration_hash)
+      end
 
       class << self
-        @@config_hash.each_key do |key|
-          define_method(key) do
-            value = @@config_hash[key]
-            if value.class == Hash
-              return ConfigHash.new(value)
-            else
-              return interpolate_commands_in(value)
-            end
-          end
+        extend Forwardable
+
+        @@full_configuration.each_pair do |key, value|
+          # puts key.to_s + ": " + value.to_s + " --> #{key} is a string: " + (value.is_a? String).to_s
+          delegate :"#{key}"  => :full_configuration
+          delegate :"#{key}=" => :full_configuration if value.is_a? String
+          delegate :save      => :full_configuration
         end
       end
 
-      private
-
-      def self.interpolate_commands_in(value)
-        value.gsub(ALLOWED_BASH_REGEX) do |command|
-          eval(command).chomp
-        end
-      end
     end
 
     # class ConfigFile ###########################################################
