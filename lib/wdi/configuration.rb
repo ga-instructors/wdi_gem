@@ -26,22 +26,67 @@ module WDI
       #   return self[name.to_sym] if key?(name.to_sym)
       #   super
       # end
+
+
     end
 
-    class ConfigHash < SimpleDelegator
+    class ConfigHash
       include ConfigMethods
 
+      extend Forwardable
+      def_delegators :@hash, :==, :[], :[]=, :each,  :each_key, :each_pair,
+                     :each_value, :empty?, :flatten, :has_key?, :key,  :key?,
+                     :keys, :length, :pretty_print, :reject,  :select, :size,
+                     :to_a, :to_h, :to_hash, :to_json, :to_s, :value?, :values,
+                     :value_at
+
+      @@full_configuration = {}
+
+      def initialize(json_hash)
+        @hash = json_hash
+        @hash.each_key do |key|
+
+          define_singleton_method :"#{key}" do |options = {}|
+            interpolate = (options[:interpolate] != false)
+            value = @hash[key]
+            if value.class == Hash
+              return ConfigHash.new(value)
+            else
+              if interpolate
+                return interpolate_commands_in(value)
+              else
+                return value
+              end
+            end
+          end
+
+
+        end
+      end
+
+      private
+
+      def self.set_full_config_as(configuration_hash)
+        @@full_configuration = ConfigHash.new(configuration_hash)
+        # return @@full_configuration
+      end
+
+      def interpolate_commands_in(value)
+        value.gsub(ALLOWED_BASH_REGEX) do |command|
+          eval(command).chomp
+        end
+      end
     end
 
     class ConfigFile
       extend WDI::Directory::FileAccess
 
-      @@hash = self.local_configuration
+      @@config_hash = ConfigHash.set_full_config_as(self.local_configuration)
 
       class << self
-        @@hash.each_key do |key|
+        @@config_hash.each_key do |key|
           define_method(key) do
-            value = @@hash[key]
+            value = @@config_hash[key]
             if value.class == Hash
               return ConfigHash.new(value)
             else
