@@ -1,11 +1,9 @@
 require "wdi"
 
-require "fileutils"
-require "json"
-
 module WDI
   module Directory
     PATH = File.expand_path(".wdi", "~")
+    CONF = "config.json"
 
     # class Files
     #   def self.exists(name)
