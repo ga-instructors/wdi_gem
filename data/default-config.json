@@ -1,5 +1,5 @@
 {
-  "name": "`whoami`",
+  "username": "`whoami`",
   "base": "`echo $HOME`/dev/wdi",
   "repos": {
     "classes": {
@@ -8,7 +8,7 @@
   },
   "go": {
     "repo": ":repos.classes.current",
-    "format": "/w%02d/d0%d/:name"
+    "format": "/w%02d/d0%d/:username"
   },
   "wdi": {
     "files": [],
