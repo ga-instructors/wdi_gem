@@ -18,8 +18,49 @@ module WDI
     # ALLOWED_KEY_REFERENCE_FORMAT_WHEN_VALUE = /:[a-z]{2,}(?:_*[a-z]{2,})*/
     ALLOWED_BASH_FORMAT_WHEN_VALUE = /(`(echo|pwd|ls|whoami)[^\|;&]*`)/
 
-    module ConfigMethods; end # let's figure out how to name the internal dynamic
-                              # better
+    module ConfigMethods
+      class ConfigRecurser
+        attr_accessor :pairs
+
+        def initialize(tree)
+          @pairs = {}
+          build_pairs_from tree
+        end
+
+        def build_pairs_from(tree, parent_key="")
+          tree.each_pair do |child_key, value|
+            if value.is_a?(Hash)
+              build_pairs_from(value, append_keys(parent_key, child_key))
+            else
+              @pairs[append_keys(parent_key, child_key).to_sym] = value
+            end
+          end
+        end
+
+        def add_child_node(node, key, value)
+          parent, child = key.to_s.split("_", 2)
+
+          if child.nil?
+            node[parent.to_sym] = value
+          else
+            node[parent.to_sym] = {} if node[parent.to_sym].nil?
+            add_child_node(node[parent.to_sym], child, value)
+          end
+        end
+
+        def append_keys(parent, child)
+          parent = (parent.nil? || parent == "") ? "" : parent.to_s + "_"
+          child  = (child.nil? || child == "")   ? "" : child.to_s
+          parent + child
+        end
+      end
+
+      def properties
+        config_recurser = ConfigRecurser.new self
+        config_recurser.pairs
+      end
+
+    end
 
     class ConfigHash
       include ConfigMethods
@@ -30,26 +71,31 @@ module WDI
                      :each_value, :empty?, :flatten, :has_key?, :key,  :key?,
                      :keys, :length, :pretty_print, :reject,  :select, :size,
                      :to_a, :to_h, :to_hash, :to_json, :to_s, :value?, :values,
-                     :value_at
+                     :value_at # TODO PJ: reduce these to what's necessary...
 
-      def initialize(json_hash = FileAccessor.local_config) #, options = {})
+      def initialize(json_hash = FileAccessor.local_config)
+        @hash = json_hash # holds the config hash from which ever node of our
+                          # config file this instance represents...
 
-        @hash = json_hash
         @hash.each_pair do |key, value|
 
           define_singleton_method key do |options = {}|
-            interpolate = (options[:interpolate] != false)
+            interpolate = (options[:interpolate] != false) # set interpolate var
+                          # to true as long as it hasn't been set to false in an
+                          # options hash TODO PJ: make this "raw" for interp. &
+                          # referencing other vals...
+
             if value.is_a? Hash
-              return ConfigHash.new(value)
+              ConfigHash.new(value) # create a new instance for this node
             else
-              if interpolate
+              if interpolate # return interpolated values...
                 if value.is_a? Array
-                  return value.map {|item| interpolate_commands_in item}
+                  value.map {|item| interpolate_commands_in item}
                 else
-                  return interpolate_commands_in(value)
+                  interpolate_commands_in value
                 end
-              else
-                return value
+              else # return raw value, most often same as interpolated value
+                value
               end
             end
           end
@@ -65,9 +111,9 @@ module WDI
 
       def save
         FileAccessor.save_locally_as "#{CONF}.bk", FileAccessor.local_config.to_json
-        FileAccessor.save_locally_as "#{CONF}.tmp", ConfigFile.full_configuration.to_json
-        # FileAccessor.save_locally_as_config, ConfigFile.full_configuration
-        return true
+        FileAccessor.save_locally_as "#{CONF}.tmp", ConfigFile.to_json
+        # FileAccessor.save_locally_as_config, ConfigFile
+        return true # cleaner than other returns...
       end
 
       private
@@ -80,6 +126,12 @@ module WDI
 
     end
 
+    # the ConfigFile class holds the state of the config hash as a whole, loading
+    # it when the program is executed, and saving it whenever called to do so by
+    # an instance of ConfigHash -- the base class also wraps that instance of the
+    # full configuration, and delegates messages to it for syntactically grace-
+    # ful interactions, ie:
+    #  ConfigFile.cohorts.current = ConfigFile.cohorts.reference(:"WDI Jan 14")
     class ConfigFile
       # include WDI::Directory
 
@@ -88,20 +140,22 @@ module WDI
       def self.full_configuration
         @@full_configuration
       end
-
-      def self.full_configuration=(configuration_hash)
-        @@full_configuration = ConfigHash.new(configuration_hash)
-      end
+      #
+      # def self.full_configuration=(configuration_hash)
+      #   @@full_configuration = ConfigHash.new(configuration_hash)
+      # end
 
       class << self
         extend Forwardable
 
         @@full_configuration.each_pair do |key, value|
-          # puts key.to_s + ": " + value.to_s + " --> #{key} is a string: " + (value.is_a? String).to_s
+          # FIXME PJ: if config file uses 'name', this overrides class.name, which causes some weird
+          # issues, for example with pry's ls
           delegate :"#{key}"  => :full_configuration
           delegate :"#{key}=" => :full_configuration if value.is_a? String
-          delegate :save      => :full_configuration
         end
+
+        delegate [:save, :properties, :to_json] => :full_configuration
       end
 
     end
